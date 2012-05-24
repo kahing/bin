@@ -9,6 +9,9 @@ files
 =====
 
 cleancache.c - drop files content from page cache after use
+
 lrc.pl - prints the lyric of the currently playing song
+
 now_playing.py - sets pidgin's tune status to the current song
+
 timeout.sh - time out a command execution after x seconds
