@@ -24,6 +24,9 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301 USA
 #
+#
+# TODO: support MPRIS players (see lrc.pl)
+#
 
 import dbus
 import sys
