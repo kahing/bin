@@ -1,0 +1,79 @@
+#!/usr/bin/perl -nlw
+
+use Getopt::Std;
+
+BEGIN {
+    @data = ();
+    getopts('f:k:g:h');
+    if ($opt_h) {
+	print "avg -g <line filter> -k <field> -f <field filter>";
+	exit 1;
+    }
+}
+
+if (not defined $opt_g or /$opt_g/o) {
+    if (defined $opt_k) {
+	@_ = split / /, $_;
+	$_ = $_[$opt_k - 1];
+    }
+    push @data, $_;
+}
+
+sub avg {
+    my $sum = 0;
+    $sum += $_ for @_;
+    return format_num($sum / @_);
+}
+
+sub avg_p90 {
+    use integer;
+    my @args = (@_);
+    my $ndrop = (scalar @args) / 20;
+    if ($ndrop) {
+	splice @args, 0, $ndrop;
+	splice @args, -$ndrop;
+    }
+    return format_num(avg(@args));
+}
+
+sub format_num {
+    if ($_[0] < 9999) {
+	$_[0] = sprintf "%.2f", $_[0];
+    } elsif ($_[0] < 99999) {
+	$_[0] = sprintf "%.1f", $_[0];
+    } else {
+	$_[0] = sprintf "%d", $_[0];
+    }
+}
+
+sub i {
+    sprintf "%d", $_[0];
+}
+
+END {
+    my $count = scalar @data;
+    if ($opt_f) {
+	@data = grep { eval($opt_f) } @data;
+    }
+    @data = sort { $a <=> $b } @data;
+
+    my @fields = (
+	'COUNT', sub { i(scalar @_) },
+	'AVG', \&avg,
+	'P90', \&avg_p90,
+	'MEDIAN', sub { i($_[@_/2]) },
+	'MIN', sub { i($_[0]) },
+	'MAX', sub { i($_[$#_]) },
+	);
+    if ($opt_f) {
+	unshift @fields, 'TOTAL', sub { $count };
+    }
+    my $i = 0;
+    my @values = map { &$_(@data) } grep { $i++ % 2 } @fields;
+    my @len = map { length } @values;
+    my $format = '';
+    $format .= '%' . ($_ > 7 ? 16 : 8) . 's' for @len;
+    $i = 0;
+    printf $format . "\n", grep { ++$i % 2 } @fields;
+    printf $format . "\n", @values;
+}

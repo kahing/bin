@@ -8,6 +8,8 @@ under GPLv2.
 files
 =====
 
+avg - calculate basic statistics for numbers
+
 cleancache.c - drop files content from page cache after use
 
 lrc.pl - prints the lyric of the currently playing song
