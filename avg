@@ -5,7 +5,8 @@ use Getopt::Std;
 BEGIN {
     @data = ();
     getopts('f:k:g:h');
-    if ($opt_h) {
+    # used $opt_h twice to hack around spurious "used only once" warning
+    if ($opt_h and $opt_h) {
 	print "avg -g <line filter> -k <field> -f <field filter>";
 	exit 1;
     }
@@ -36,6 +37,17 @@ sub avg_p90 {
     return format_num(avg(@args));
 }
 
+sub stddev {
+    my $avg = avg(@_);
+    my $sum_mean_diff_sq = 0;
+    for (@_) {
+	my $diff = $_ - $avg;
+	$sum_mean_diff_sq += $diff ** 2;
+    }
+
+    return format_num(sqrt($sum_mean_diff_sq / scalar @_));
+}
+
 sub format_num {
     if ($_[0] < 9999) {
 	$_[0] = sprintf "%.2f", $_[0];
@@ -52,6 +64,10 @@ sub i {
 
 END {
     my $count = scalar @data;
+    if ($count == 0) {
+	exit 0;
+    }
+
     if ($opt_f) {
 	@data = grep { eval($opt_f) } @data;
     }
@@ -64,6 +80,7 @@ END {
 	'MEDIAN', sub { i($_[@_/2]) },
 	'MIN', sub { i($_[0]) },
 	'MAX', sub { i($_[$#_]) },
+	'STDDEV', \&stddev,
 	);
     if ($opt_f) {
 	unshift @fields, 'TOTAL', sub { $count };
