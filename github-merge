@@ -26,7 +26,7 @@ FETCH_HEAD=$(git rev-parse FETCH_HEAD)
 
 git checkout FETCH_HEAD && \
     git rebase master && \
-    git log "--pretty=format:%B%nCloses #$ISSUE" -1 | \
+    git log "--pretty=format:%B%nFixes #$ISSUE" -1 | \
     git commit --amend -F - && \
     NEWHEAD=$(git rev-parse HEAD) && \
     git checkout master && \
