@@ -1,0 +1,45 @@
+#!/bin/bash
+
+if [ $# != 1 ]; then
+   echo "Usage: $0 <issue>" >&2
+   exit 1
+fi
+
+ISSUE=$1
+
+HEAD=$(git rev-parse HEAD)
+if [ $HEAD != $(git rev-parse master) ]; then
+    echo "Must be on master branch" >&2
+    exit 1
+fi
+
+BRANCH=refs/pull/$ISSUE/head
+
+git fetch origin $BRANCH
+GITEXIT=$?
+if [ $GITEXIT != 0 ]; then
+    echo "PR #ISSUE doesn't exist" >&2
+    exit $GITEXIT
+fi
+
+FETCH_HEAD=$(git rev-parse FETCH_HEAD)
+
+git checkout FETCH_HEAD && \
+    git rebase master && \
+    git log "--pretty=format:%B%nCloses #$ISSUE" -1 | \
+    git commit --amend -F - && \
+    NEWHEAD=$(git rev-parse HEAD) && \
+    git checkout master && \
+    git merge --ff-only $NEWHEAD
+
+GITEXIT=$?
+
+if [ $GITEXIT != 0 ]; then
+    git reset --hard $HEAD
+    exit $GITEXIT;
+else
+    echo "merge sucess, run this to push and delete branch"
+    git fetch
+    BRANCH=$(git branch --list --contains $FETCH_HEAD)
+    echo "git push && git push --no-verify origin --delete $BRANCH"
+fi
