@@ -18,7 +18,7 @@ BRANCH=refs/pull/$ISSUE/head
 git fetch origin $BRANCH
 GITEXIT=$?
 if [ $GITEXIT != 0 ]; then
-    echo "PR #ISSUE doesn't exist" >&2
+    echo "PR #$ISSUE doesn't exist" >&2
     exit $GITEXIT
 fi
 
