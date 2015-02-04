@@ -1,0 +1,22 @@
+#!/bin/sh
+
+if [ $# != 3 ]; then
+   echo "Usage: $0 <sha1> <branch name> <parent branch>" >&2
+   exit 1
+fi
+
+SHA=$1; shift
+BRANCH=$1; shift
+PARENT=$1; shift
+
+export GIT_AUTHOR_EMAIL=$(git config --global user.email)
+export GIT_COMMITTER_EMAIL=$GIT_AUTHOR_EMAIL
+
+HEAD=$(git rev-parse HEAD)
+
+git rev-parse "$SHA^{commit}" && \
+    git checkout -b $BRANCH $PARENT && \
+    git cherry-pick $SHA && \
+    git commit --amend --no-edit --reset-author && \
+    git push kahing $BRANCH && \
+    git checkout $HEAD
