@@ -14,7 +14,8 @@ export GIT_COMMITTER_EMAIL=$GIT_AUTHOR_EMAIL
 
 HEAD=$(git rev-parse HEAD)
 
-git rev-parse "$SHA^{commit}" && \
+git rev-parse "$SHA^{commit}" > /dev/null && \
+    git rev-parse $PARENT > /dev/null && \
     git checkout -b $BRANCH $PARENT && \
     git cherry-pick $SHA && \
     git commit --amend --no-edit --reset-author && \
