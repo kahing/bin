@@ -1,0 +1,44 @@
+#!/bin/bash
+
+S3CMD=s3cmd
+PROPERTIES=
+
+while [[ $# > 1 ]]; do
+    case $1 in
+        -f)
+            shift
+            PROPERTIES=$1
+            shift
+            ;;
+	*)
+	    break
+	    ;;
+    esac
+done
+
+function extract_property {
+    prop=$1
+    fgrep $1= $PROPERTIES | cut -d= -f 2
+}
+
+if [ "$PROPERTIES" != "" ]; then
+    IDENTITY=$(extract_property s3proxy.identity)
+    CREDENTIAL=$(extract_property s3proxy.credential)
+
+    BOUNCE_PORT=$(extract_property s3proxy.endpoint | cut -d: -f 3)
+    BOUNCE_IP=$(sudo docker inspect --format '{{ .NetworkSettings.IPAddress }}' bounce-proxy)
+    if [ $? != 0 ]; then
+        BOUNCE_IP=127.0.0.1
+    fi
+
+    $S3CMD -c /dev/stdin $@ <<EOF
+[default]
+access_key = $IDENTITY
+secret_key = $CREDENTIAL
+host_base = $BOUNCE_IP:$BOUNCE_PORT
+host_bucket = $BOUNCE_IP:$BOUNCE_PORT
+EOF
+
+else
+    $S3CMD $@
+fi
