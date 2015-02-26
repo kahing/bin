@@ -4,18 +4,21 @@ use Getopt::Std;
 
 BEGIN {
     @data = ();
-    getopts('f:k:g:h');
+    getopts('f:k:g:e:h');
     # used $opt_h twice to hack around spurious "used only once" warning
     if ($opt_h and $opt_h) {
-	print "avg -g <line filter> -k <field> -f <field filter>";
+	print "avg -g <line filter> -k <field> -e <convert field> -f <field filter>";
 	exit 1;
     }
 }
 
 if (not defined $opt_g or /$opt_g/o) {
     if (defined $opt_k) {
-	@_ = split / /, $_;
+	@_ = split;
 	$_ = $_[$opt_k - 1];
+    }
+    if (defined $opt_e) {
+        $_ = eval($opt_e);
     }
     push @data, $_;
 }
