@@ -1,0 +1,43 @@
+#!/bin/bash
+
+pid=$(xdotool search --onlyvisible --class firefox getwindowpid)
+throttled=0
+
+function do_throttle
+{
+    echo "STOP $pid"
+    kill -STOP $pid
+}
+
+function do_unthrottle
+{
+    echo "CONT $pid"
+    kill -CONT $pid
+}
+
+while true; do
+    activepid=$(xdotool getactivewindow getwindowpid)
+    if [ "$activepid" = "$pid" ]; then
+        if [ $throttled = 1 ]; then
+            do_unthrottle
+            throttled=0
+        fi
+    elif [ $throttled = 0 ]; then
+        do_throttle
+        throttled=1
+    fi
+
+    if [ $throttled = 1 ]; then
+        for i in $(seq 1 100); do
+            sleep 0.1
+            activepid=$(xdotool getactivewindow getwindowpid)
+            if [ "$activepid" = "$pid" ]; then
+                break;
+            fi
+        done
+        do_unthrottle
+        throttled=0
+    fi
+
+    sleep 1
+done
