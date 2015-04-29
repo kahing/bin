@@ -1,0 +1,6 @@
+#!/bin/bash
+
+set -o errexit
+
+CONTAINER=$(docker run $@)
+echo $CONTAINER $(docker inspect -f "{{ .NetworkSettings.IPAddress }}" $CONTAINER)

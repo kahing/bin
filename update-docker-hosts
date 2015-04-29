@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -o errexit
+
+HOSTS=/etc/docker-hosts
+TMPHOSTS=$HOSTS.tmp
+
+tee $TMPHOSTS < /dev/null
+
+for c in $(docker ps -q); do
+    IP=$(docker inspect -f "{{ .NetworkSettings.IPAddress }}" $c)
+    NAME=$(docker inspect -f "{{ .Name }}" $c | tr -d /)
+    echo -e "$IP\t$NAME $c" | tee -a $TMPHOSTS
+done
+
+sudo mv $TMPHOSTS $HOSTS
+pkill -HUP -F /run/sendsigs.omit.d/network-manager.dnsmasq.pid
