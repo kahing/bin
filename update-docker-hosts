@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# this dnsmasq config file maybe useful
+# $ cat /etc/NetworkManager/dnsmasq.d/docker.conf
+# addn-hosts=/etc/docker-hosts
+
 set -o errexit
 
 HOSTS=/etc/docker-hosts
