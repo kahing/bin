@@ -10,6 +10,8 @@ BEGIN {
 	print "avg [-v] -g <line filter> -k <field> -e <convert field> -f <field filter>";
 	exit 1;
     }
+    # prevent Name "main::opt_v" used only once: possible typo
+    $opt_v = $opt_v;
 }
 
 if (not defined $opt_g or /$opt_g/o) {
@@ -51,6 +53,12 @@ sub stddev {
     return format_num(sqrt($sum_mean_diff_sq / scalar @_));
 }
 
+sub sum {
+    my $sum = 0;
+    $sum += $_ for @_;
+    return $sum;
+}
+
 sub format_num {
     if ($_[0] < 9999) {
 	$_[0] = sprintf "%.2f", $_[0];
@@ -88,6 +96,7 @@ END {
 	'MIN', sub { i($_[0]) },
 	'MAX', sub { i($_[$#_]) },
 	'STDDEV', \&stddev,
+        'SUM', \&sum,
 	);
     if ($opt_f) {
 	unshift @fields, 'TOTAL', sub { $count };
