@@ -4,10 +4,10 @@ use Getopt::Std;
 
 BEGIN {
     @data = ();
-    getopts('f:k:g:e:h');
+    getopts('f:k:g:e:hv');
     # used $opt_h twice to hack around spurious "used only once" warning
     if ($opt_h and $opt_h) {
-	print "avg -g <line filter> -k <field> -e <convert field> -f <field filter>";
+	print "avg [-v] -g <line filter> -k <field> -e <convert field> -f <field filter>";
 	exit 1;
     }
 }
@@ -18,7 +18,7 @@ if (not defined $opt_g or /$opt_g/o) {
 	$_ = $_[$opt_k - 1];
     }
     if (defined $opt_e) {
-        $_ = eval($opt_e);
+        eval($opt_e);
     }
     push @data, $_;
 }
@@ -75,6 +75,10 @@ END {
 	@data = grep { eval($opt_f) } @data;
     }
     @data = sort { $a <=> $b } @data;
+
+    if ($opt_v) {
+        printf "$_\n" for @data;
+    }
 
     my @fields = (
 	'COUNT', sub { i(scalar @_) },
