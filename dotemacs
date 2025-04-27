@@ -1,0 +1,175 @@
+;; why do I need this?
+(setq package-check-signature nil)
+
+;; (let ((package-check-signature nil))
+;;   (package-refresh-contents)
+;;     (package-install 'gnu-elpa-keyring-update))
+
+
+;;(setq package-check-signature nil)re
+
+(require 'package)
+(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
+;; Comment/uncomment this line to enable MELPA Stable if desired.  See `package-archive-priorities`
+;; and `package-pinned-packages`. Most users will not need or want to do this.
+;;(add-to-list 'package-archives '("melpa-stable" . "https://stable.melpa.org/packages/") t)
+(package-initialize)
+
+(setq desktop-path '("~/.emacs.d")) 
+(desktop-save-mode 1)
+(setq desktop-auto-save-timeout 5)
+
+;; don't disable tramp files
+(setq desktop-buffers-not-to-save "^$")
+(setq desktop-files-not-to-save "^$")
+(with-eval-after-load "tramp" (add-to-list 'tramp-remote-path 'tramp-own-remote-path))
+
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(copilot-chat-model "gpt-4o")
+ '(package-selected-packages
+   '(scala-mode clipetty copilot-chat yasnippet company copilot quelpa-use-package quelpa f dash jsonrpc editorconfig xclip go-mode)))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
+
+(setq gofmt-command "gofmt")
+(setq gofmt-args nil)
+;; (add-hook 'before-save-hook #'gofmt-before-save)
+
+(xclip-mode)
+
+;;(add-to-list 'load-path "/Users/kahing.cheung/code/ext/copilot.el")
+;;(require 'copilot)
+
+(require 'use-package)
+(require 'quelpa-use-package)
+(use-package copilot
+  :quelpa (copilot :fetcher github
+                   :repo "copilot-emacs/copilot.el"
+                   :branch "main"
+                   :files ("*.el")))
+
+(define-key copilot-completion-map (kbd "C-e") 'copilot-accept-completion-by-line)
+(define-key copilot-completion-map (kbd "M-n") 'copilot-next-completion)
+(define-key copilot-completion-map (kbd "M-p") 'copilot-previous-completion)
+
+(defun copilot-complete-or-accept ()
+  "Command that either triggers a completion or accepts one if one
+is available."
+  (interactive)
+  (if (copilot--overlay-visible)
+      (progn
+        (copilot-accept-completion))
+    (copilot-complete)))
+
+(defun complete-or-accept ()
+  "Command that either triggers a completion or accepts one if one is available."
+  (interactive)
+  (if (> (length company-candidates) 0)
+      (progn (company-complete-common))
+    (if (copilot--overlay-visible)
+	(progn (copilot-accept-completion))
+	(progn (copilot-complete)))))
+
+(defun my-indent-or-complete (arg)
+  "Indent the current line or region, or complete the common part."
+  (interactive "P")
+  (cond
+   ((use-region-p)
+    (indent-region (region-beginning) (region-end)))
+   ((memq indent-line-function
+          '(indent-relative indent-relative-maybe))
+    (complete-or-accept))
+   ((let ((old-point (point))
+          (old-tick (buffer-chars-modified-tick))
+          (tab-always-indent t))
+      (indent-for-tab-command arg)
+      (when (and (eq old-point (point))
+                 (eq old-tick (buffer-chars-modified-tick)))
+        (complete-or-accept))))))
+
+(global-set-key (kbd "TAB") #'my-indent-or-complete)
+(global-set-key (kbd "<tab>") #'my-indent-or-complete)
+
+
+;; (require 'lsp-mode)
+;; (add-hook 'go-mode-hook #'lsp-deferred)
+;; (defun lsp-go-install-save-hooks ()
+;;   (add-hook 'before-save-hook #'lsp-format-buffer t t)
+;;   (add-hook 'before-save-hook #'lsp-organize-imports t t))
+;; (add-hook 'go-mode-hook #'lsp-go-install-save-hooks)
+;; Optional: load other packages before eglot to enable eglot integrations.
+(require 'company)
+(require 'yasnippet)
+
+(with-eval-after-load 'company
+  (define-key company-active-map (kbd "M-/") #'company-complete))
+
+;; https://github.com/golang/tools/blob/master/gopls/doc/emacs.md#configuring-eglot
+(require 'project)
+
+(use-package project
+  :init
+   (setq project-vc-extra-root-markers '(".mockery.yaml")))
+
+;; (defun project-find-go-module (dir)
+;;   (when-let ((root (locate-dominating-file dir "go.mod")))
+;;     (cons 'go-module root)))
+
+(defun project-find-go-module (dir)
+  (if-let ((root (locate-dominating-file dir "go.mod")))
+      (cons 'go-module root)
+    "/Users/kahing.cheung/universe/wsfs/"))
+
+;; (message "project root is %s" (project-find-go-module "/Users/kahing.cheung/universe/wsfs/"))
+
+(cl-defmethod project-root ((project (head go-module)))
+  (cdr project))
+
+(add-hook 'project-find-functions #'project-find-go-module)
+
+(require 'go-mode)
+(require 'eglot)
+(add-hook 'go-mode-hook 'eglot-ensure)
+
+;; Optional: install eglot-format-buffer as a save hook.
+;; The depth of -10 places this before eglot's willSave notification,
+;; so that that notification reports the actual contents that will be saved.
+(defun eglot-format-buffer-before-save ()
+  (add-hook 'before-save-hook #'eglot-format-buffer -10 t))
+(add-hook 'go-mode-hook #'eglot-format-buffer-before-save)
+
+(setq lsp-semantic-tokens-enable t)
+
+(use-package copilot-chat)
+;; this was a good idea but doesn't work when we are trying to commit a merge
+;; (add-hook 'git-commit-setup-hook 'copilot-chat-insert-commit-message)
+
+(add-hook 'prog-mode-hook 'copilot-mode)
+(add-hook 'prog-mode-hook 'company-mode)
+
+;; remove annoying warning from popping up in a buffer
+(setq warning-minimum-level :error)
+
+;; adapted from https://emacs.stackexchange.com/questions/65065/dont-replace-my-buffers-with-warnings-or-message-buffers
+;; and https://www.reddit.com/r/emacs/comments/179t67l/window_management_share_your_displaybufferalist/
+(add-to-list 'display-buffer-alist
+	     '("\\*\\(Warnings\\|Messages\\)\\*"
+	       (display-buffer-in-side-window)
+	       (window-height . 0.10)
+	       (side . bottom)))
+
+(add-to-list 'display-buffer-alist
+             (cons (rx string-start "*Copilot-chat*" string-end)
+                   (cons 'display-buffer-reuse-window
+                         '((reusable-frames . visible)
+                           (inhibit-switch-frames . nil)))))
+(require 'clipetty)
+(global-clipetty-mode)
